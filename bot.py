@@ -31,6 +31,37 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii = False, indent = 4)
 
+@dp.message(Command("stats"))
+async def cmd_stats(message: types.Message):
+    user_id = str(message.from_user.id)
+    data = load_data()
+
+    if user_id not in data or not data[user_id]:
+        await message.answer("У тебя пока нет записей о тратах")
+        return
+
+    user_expenses = data[user_id]
+    total_spent =  sum(item["amount"] for item in user_expenses)
+
+    category_sums = {}
+    for item in user_expenses:
+        cat = item["category"]
+        amt = item["amount"]
+        if cat in category_sums:
+            category_sums[cat] += amt
+        else:
+            category_sums[cat] = amt
+
+    response_text = "Твоя статистика трат: \n\n"
+
+    for cat, amt in category_sums.items():
+        response_text += f"{cat.capitalize()} : {amt} рублей \n"
+
+    response_text += f"\nВсего потрачено: {total_spent} рублей"
+
+    await message.answer(response_text)
+
+
 async def main():
     print("Бот запущен")
     await dp.start_polling(bot)
@@ -41,7 +72,7 @@ async def add_expense(message: types.Message):
     try:
         parts = text.split()
         amount = int(parts[0])
-        category = parts[1]
+        category = parts[1].lower()
         user_id = str(message.from_user.id)
         data = load_data()
 
