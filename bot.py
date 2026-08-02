@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
 
 load_dotenv()
 
@@ -23,8 +23,9 @@ class FSM(StatesGroup):
 async def cmd_start(message: types.Message):
     await message.answer(
         "Привет, я твой финансовый трекер. \n"
-        "Отправь мне сумму траты (например, 500), и я предложу тебе выбрать категорию\n"
-        "Если хочешь посмотреть статистику своих трат, нажми /stats"
+        "Отправь мне сумму траты (например, 500), и я предложу тебе выбрать категорию.\n"
+        "Если хочешь посмотреть статистику своих трат, нажми /stats.\n"
+        "Если хочешь посмотреть основные возможности бота, нажми /help."
     )
 
 def load_data():
@@ -67,6 +68,15 @@ async def cmd_stats(message: types.Message):
 
     await message.answer(response_text)
 
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
+    await message.answer(
+        "Вот что я умею: \n\n"
+        "1. Отправь мне число (например, 500), чтобы записать трату, затем выбери подходящую категорию.\n"
+        "2. /stats - посмотреть статистику трат. \n"
+        "3. /help - помощь по использованию бота."
+        )
+
 @dp.message(F.text.regexp(r'^\d+$'))
 async def process_amount(message: types.Message, state: FSMContext):
     amount = int(message.text)
@@ -100,6 +110,8 @@ async def fall(message: types.Message):
     await message.answer("Пожалуйста, просто отправь сумму траты числом (например, 500).")
     
 async def main():
+    main_menu_commands = [BotCommand(command="/start", description="Запустить бота"), BotCommand(command="/stats", description="Посмотреть статистику"), BotCommand(command="/help", description="Справка")]
+    await bot.set_my_commands(main_menu_commands)
     print("Бот запущен")
     await dp.start_polling(bot)
 
