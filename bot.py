@@ -74,8 +74,37 @@ async def cmd_help(message: types.Message):
         "Вот что я умею: \n\n"
         "1. Отправь мне число (например, 500), чтобы записать трату, затем выбери подходящую категорию.\n"
         "2. /stats - посмотреть статистику трат. \n"
-        "3. /help - помощь по использованию бота."
+        "3. /help - помощь по использованию бота.\n"
+        "4. /clear - очистить историю трат."
         )
+
+@dp.message(Command("clear"))
+async def cmd_clear(message: types.Message):
+    data = load_data()
+    user_id = str(message.from_user.id)
+    if user_id not in data or not data[user_id]: 
+        await message.answer("У тебя пока нет записей о тратах.")
+        return
+    else:
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ Да, удалить", callback_data="confirm_clear"),InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_clear")]])
+        await message.answer("Ты уверен, что хочешь удалить записи о тратах? Потом их нельзя будет вернуть!", reply_markup=kb)
+
+@dp.callback_query(F.data == "cancel_clear")
+async def cmd_cancel_clear(callback: types.CallbackQuery):
+    await callback.message.edit_text("Действие отменено.")
+    await callback.answer()
+
+@dp.callback_query(F.data == "confirm_clear")
+async def cmd_confirm_clear(callback: types.CallbackQuery):
+    data = load_data()
+    user_id = str(callback.from_user.id)
+    if user_id in data:
+        del data[user_id]
+        save_data(data)
+        await callback.message.edit_text("История трат очищена.")
+    else:
+        await callback.message.edit_text("История трат уже пуста.")
+    await callback.answer()
 
 @dp.message(F.text.regexp(r'^\d+$'))
 async def process_amount(message: types.Message, state: FSMContext):
@@ -110,7 +139,7 @@ async def fall(message: types.Message):
     await message.answer("Пожалуйста, просто отправь сумму траты числом (например, 500).")
     
 async def main():
-    main_menu_commands = [BotCommand(command="/start", description="Запустить бота"), BotCommand(command="/stats", description="Посмотреть статистику"), BotCommand(command="/help", description="Справка")]
+    main_menu_commands = [BotCommand(command="/start", description="Запустить бота"), BotCommand(command="/stats", description="Посмотреть статистику"), BotCommand(command="/help", description="Справка"), BotCommand(command="/clear", description="Очистить историю трат")]
     await bot.set_my_commands(main_menu_commands)
     print("Бот запущен")
     await dp.start_polling(bot)
